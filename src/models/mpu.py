@@ -14,7 +14,7 @@ from viam.utils import SensorReading, ValueTypes
 class Mpu(Sensor, EasyResource):
     # To enable debug-level logging, either run viam-server with the --debug option,
     # or configure your resource/machine to display debug logs.
-   MODEL: ClassVar[Model] = Model(ModelFamily("edss", "rocket-sensors"), "mpu-sensor")
+    MODEL: ClassVar[Model] = Model(ModelFamily("edss", "rocket-sensors"), "mpu-sensor")
 
     @classmethod
     def new(
