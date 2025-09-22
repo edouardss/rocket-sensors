@@ -1,5 +1,6 @@
 import asyncio
 from viam.module.module import Module
+
 try:
     from models.mpu import Mpu
 except ModuleNotFoundError:
