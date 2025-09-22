@@ -20,7 +20,7 @@
   ],
   "applications": null,
   "markdown_link": "README.md",
-  "entrypoint": "dist/main",
+  "entrypoint": "reload.sh",
   "first_run": "",
   "build": {
     "build": "./build.sh",
