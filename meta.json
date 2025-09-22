@@ -3,12 +3,18 @@
   "module_id": "edss:rocket-sensors",
   "visibility": "public",
   "url": "",
-  "description": "Modular sensor component: mpu",
+  "description": "Sensors used for home made rocket control system",
   "models": [
     {
       "api": "rdk:component:sensor",
       "model": "edss:rocket-sensors:mpu",
-      "short_description": "Provide a short (100 characters or less) description of this model here",
+      "short_description": "MPU 6050 sensor for acceleration and gyroscope measurements",
+      "markdown_link": "README.md#model-edssrocket-sensorsmpu"
+    },
+    {
+      "api": "rdk:component:sensor",
+      "model": "edss:rocket-sensors:bmp",
+      "short_description": "BMP 180 sensor for pressure and temperature measurements",
       "markdown_link": "README.md#model-edssrocket-sensorsmpu"
     }
   ],
@@ -22,9 +28,7 @@
     "path": "dist/archive.tar.gz",
     "arch": [
       "linux/amd64",
-      "linux/arm64",
-      "darwin/arm64",
-      "windows/amd64"
+      "linux/arm64"
     ]
   }
 }
