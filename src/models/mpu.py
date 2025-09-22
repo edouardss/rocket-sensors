@@ -10,6 +10,10 @@ from viam.resource.easy_resource import EasyResource
 from viam.resource.types import Model, ModelFamily
 from viam.utils import SensorReading, ValueTypes
 
+import board
+import busio
+import adafruit_mpu6050
+
 
 class Mpu(Sensor, EasyResource):
     # To enable debug-level logging, either run viam-server with the --debug option,
