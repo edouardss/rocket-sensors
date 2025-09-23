@@ -7,7 +7,7 @@
   "models": [
     {
       "api": "rdk:component:sensor",
-      "model": "edss:rocket-sensors:mpu",
+      "model": "edss:rocket-sensors:mpu-sensor",
       "short_description": "MPU 6050 sensor for acceleration and gyroscope measurements",
       "markdown_link": "README.md#model-edssrocket-sensorsmpu"
     },
