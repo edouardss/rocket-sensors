@@ -15,7 +15,13 @@
       "api": "rdk:component:sensor",
       "model": "edss:rocket-sensors:bmp",
       "short_description": "BMP 180 sensor for pressure and temperature measurements",
-      "markdown_link": "README.md#model-edssrocket-sensorsmpu"
+      "markdown_link": "README.md#model-edssrocket-sensorsbmp"
+    },
+    {
+      "api": "rdk:component:sensor",
+      "model": "edss:rocket-sensors:loadcell",
+      "short_description": "hx711 load cell sensor for weight measurements",
+      "readme_link": "README.md#model-edssrocket-sensorsloadcell"
     }
   ],
   "applications": null,
