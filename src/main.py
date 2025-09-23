@@ -6,6 +6,14 @@ try:
 except ModuleNotFoundError:
     # when running as local module with run.sh
     from .models.mpu import Mpu
+    print("Could not find the module Mpu, locally")
+
+try:
+    from models.bmp import BmpSensor
+except ModuleNotFoundError:
+    # when running as local module with run.sh
+    from .models.bmp import BmpSensor
+    print("Could not find the module BmpSensor, locally")
 
 try:
     from models.loadcell import LoadCell

@@ -13,7 +13,7 @@
     },
     {
       "api": "rdk:component:sensor",
-      "model": "edss:rocket-sensors:bmp",
+      "model": "edss:rocket-sensors:bmp-sensor",
       "short_description": "BMP 180 sensor for pressure and temperature measurements",
       "markdown_link": "README.md#model-edssrocket-sensorsbmp"
     },
