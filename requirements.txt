@@ -1,16 +1,20 @@
 
+# Core Viam SDK
 viam-sdk==0.55.1
 
+# MPU6050 IMU Sensor
 adafruit-circuitpython-mpu6050==1.3.4
 adafruit-circuitpython-busdevice
 adafruit-blinka
 
-typing-extensions
+# BMP Pressure Sensor
+Adafruit-BMP>=1.5.4
+
+# HX711 Load Cell Sensor
+hx711>=1.1.2
+
+# Type hints support
+typing-extensions>=4.15.0
 
 # Raspberry Pi GPIO Library (only available on Raspberry Pi)
 RPi.GPIO>=0.7.1; sys_platform == "linux" and platform_machine == "aarch64"
-
-# HX711 Load Cell Library
-hx711
-
-adafruit-bmp
