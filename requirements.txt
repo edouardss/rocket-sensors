@@ -2,5 +2,7 @@
 viam-sdk==0.55.1
 
 adafruit-circuitpython-mpu6050==1.3.4
+adafruit-circuitpython-busdevice
+adafruit-blinka
 
 typing-extensions
