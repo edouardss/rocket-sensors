@@ -9,19 +9,19 @@
       "api": "rdk:component:sensor",
       "model": "edss:rocket-sensors:mpu-sensor",
       "short_description": "MPU 6050 sensor for acceleration and gyroscope measurements",
-      "markdown_link": "README.md#model-edssrocket-sensorsmpu"
+      "markdown_link": "README.md#3-imu-sensor"
     },
     {
       "api": "rdk:component:sensor",
       "model": "edss:rocket-sensors:bmp-sensor",
-      "short_description": "BMP 180 sensor for pressure and temperature measurements",
-      "markdown_link": "README.md#model-edssrocket-sensorsbmp"
+      "short_description": "BMP sensor for pressure and altitude measurements",
+      "markdown_link": "README.md#2-bmp-altitude-sensor"
     },
     {
       "api": "rdk:component:sensor",
       "model": "edss:rocket-sensors:loadcell",
-      "short_description": "hx711 load cell sensor for weight measurements",
-      "readme_link": "README.md#model-edssrocket-sensorsloadcell"
+      "short_description": "HX711 load cell sensor for weight measurements",
+      "markdown_link": "README.md#1-hx711-loadcell-sensor"
     }
   ],
   "applications": null,
