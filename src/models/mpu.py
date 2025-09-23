@@ -37,7 +37,7 @@ class Mpu(Sensor, EasyResource):
         return super().new(config, dependencies)
 
     @classmethod
-    def validate_config(cls, config: ComponentConfig) -> Sequence[str]:
+    def validate_config(cls, config: ComponentConfig) -> Tuple[Sequence[str], Sequence[str]]:
         """This method allows you to validate the configuration object received from the machine,
         as well as to return any implicit dependencies based on that `config`.
 
@@ -45,38 +45,61 @@ class Mpu(Sensor, EasyResource):
             config (ComponentConfig): The configuration for this resource
 
         Returns:
-            Sequence[str]: A list of implicit dependencies
+            Tuple[Sequence[str], Sequence[str]]: A tuple of (required_dependencies, optional_dependencies)
         """
         fields = config.attributes.fields
+        errors = []
 
-        # Validate i2c_address parameter if provided
-        if "i2c_address" in fields:
-            if not fields["i2c_address"].HasField("number_value"):
-                raise ValueError("i2c_address must be a valid number")
-            else:
-                i2c_address = int(fields["i2c_address"].number_value)
-                if not (0x08 <= i2c_address <= 0x77):
-                    raise ValueError("i2c_address must be a valid I2C address (0x08-0x77)")
+        # Validate i2c_address parameter (REQUIRED)
+        if "i2c_address" not in fields:
+            errors.append("i2c_address is required.")
+        elif not fields["i2c_address"].HasField("number_value"):
+            errors.append("i2c_address must be a valid number.")
+        else:
+            i2c_address = int(fields["i2c_address"].number_value)
+            if not (0x08 <= i2c_address <= 0x77):
+                errors.append("i2c_address must be a valid I2C address (0x08-0x77)")
         
-        # Validate units parameter if provided
-        if "units" in fields:
-            if not fields["units"].HasField("string_value"):
-                raise ValueError("units must be a valid string")
-            else:
-                units = fields["units"].string_value.lower()
-                if units not in ["metric", "imperial"]:
-                    raise ValueError("units must be either 'metric' or 'imperial'")
+        # Validate units parameter (REQUIRED)
+        if "units" not in fields:
+            errors.append("units is required.")
+        elif not fields["units"].HasField("string_value"):
+            errors.append("units must be a valid string.")
+        else:
+            units = fields["units"].string_value.lower()
+            if units not in ["metric", "imperial"]:
+                errors.append("units must be either 'metric' or 'imperial'")
         
-        # Validate sample_rate parameter if provided
-        if "sample_rate" in fields:
-            if not fields["sample_rate"].HasField("number_value"):
-                raise ValueError("sample_rate must be a valid number")
-            else:
-                sample_rate = int(fields["sample_rate"].number_value)
-                if sample_rate <= 0:
-                    raise ValueError("sample_rate must be a positive number")
+        # Validate sample_rate parameter (REQUIRED)
+        if "sample_rate" not in fields:
+            errors.append("sample_rate is required.")
+        elif not fields["sample_rate"].HasField("number_value"):
+            errors.append("sample_rate must be a valid number.")
+        else:
+            sample_rate = int(fields["sample_rate"].number_value)
+            if sample_rate <= 0:
+                errors.append("sample_rate must be a positive number")
         
-        return []
+        # Validate optional offset parameters (if provided, must be floats)
+        optional_offsets = ["accel_x_offset", "accel_y_offset", "accel_z_offset", 
+                           "gyro_x_offset", "gyro_y_offset", "gyro_z_offset"]
+        
+        for offset_param in optional_offsets:
+            if offset_param in fields:
+                if not fields[offset_param].HasField("number_value"):
+                    errors.append(f"{offset_param} must be a valid number (float).")
+                else:
+                    # Verify it's a float by checking if it can be converted to float
+                    try:
+                        float(fields[offset_param].number_value)
+                    except (ValueError, TypeError):
+                        errors.append(f"{offset_param} must be a valid float value.")
+        
+        # If there are validation errors, raise an exception with all errors
+        if errors:
+            raise Exception("; ".join(errors))
+        
+        return ["i2c_address", "units", "sample_rate"], optional_offsets  # Return (required_dependencies, optional_dependencies)
 
     def reconfigure(
         self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]
