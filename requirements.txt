@@ -6,3 +6,9 @@ adafruit-circuitpython-busdevice
 adafruit-blinka
 
 typing-extensions
+
+# Raspberry Pi GPIO Library (only available on Raspberry Pi)
+RPi.GPIO>=0.7.1; sys_platform == "linux" and platform_machine == "aarch64"
+
+# HX711 Load Cell Library
+hx711==1.1.2.3
