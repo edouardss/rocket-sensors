@@ -50,35 +50,32 @@ class Mpu(Sensor, EasyResource):
         fields = config.attributes.fields
         errors = []
 
-        # Validate i2c_address parameter (REQUIRED)
-        if "i2c_address" not in fields:
-            errors.append("i2c_address is required.")
-        elif not fields["i2c_address"].HasField("number_value"):
-            errors.append("i2c_address must be a valid number.")
-        else:
-            i2c_address = int(fields["i2c_address"].number_value)
-            if not (0x08 <= i2c_address <= 0x77):
-                errors.append("i2c_address must be a valid I2C address (0x08-0x77)")
+        # Validate i2c_address parameter (OPTIONAL)
+        if "i2c_address" in fields:
+            if not fields["i2c_address"].HasField("number_value"):
+                errors.append("i2c_address must be a valid number.")
+            else:
+                i2c_address = int(fields["i2c_address"].number_value)
+                if not (0x08 <= i2c_address <= 0x77):
+                    errors.append("i2c_address must be a valid I2C address (0x08-0x77)")
         
-        # Validate units parameter (REQUIRED)
-        if "units" not in fields:
-            errors.append("units is required.")
-        elif not fields["units"].HasField("string_value"):
-            errors.append("units must be a valid string.")
-        else:
-            units = fields["units"].string_value.lower()
-            if units not in ["metric", "imperial"]:
-                errors.append("units must be either 'metric' or 'imperial'")
+        # Validate units parameter (OPTIONAL)
+        if "units" in fields:
+            if not fields["units"].HasField("string_value"):
+                errors.append("units must be a valid string.")
+            else:
+                units = fields["units"].string_value.lower()
+                if units not in ["metric", "imperial"]:
+                    errors.append("units must be either 'metric' or 'imperial'")
         
-        # Validate sample_rate parameter (REQUIRED)
-        if "sample_rate" not in fields:
-            errors.append("sample_rate is required.")
-        elif not fields["sample_rate"].HasField("number_value"):
-            errors.append("sample_rate must be a valid number.")
-        else:
-            sample_rate = int(fields["sample_rate"].number_value)
-            if sample_rate <= 0:
-                errors.append("sample_rate must be a positive number")
+        # Validate sample_rate parameter (OPTIONAL)
+        if "sample_rate" in fields:
+            if not fields["sample_rate"].HasField("number_value"):
+                errors.append("sample_rate must be a valid number.")
+            else:
+                sample_rate = int(fields["sample_rate"].number_value)
+                if sample_rate <= 0:
+                    errors.append("sample_rate must be a positive number")
         
         # Validate optional offset parameters (if provided, must be floats)
         optional_offsets = ["accel_x_offset", "accel_y_offset", "accel_z_offset", 
@@ -99,7 +96,7 @@ class Mpu(Sensor, EasyResource):
         if errors:
             raise Exception("; ".join(errors))
         
-        return ["i2c_address", "units", "sample_rate"], optional_offsets  # Return (required_dependencies, optional_dependencies)
+        return [], ["i2c_address", "units", "sample_rate"] + optional_offsets  # Return (required_dependencies, optional_dependencies)
 
     def reconfigure(
         self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]

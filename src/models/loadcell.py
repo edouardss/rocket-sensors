@@ -82,67 +82,62 @@ class LoadCell(Sensor, EasyResource):
         fields = config.attributes.fields
         errors = []
 
-        # Validate gain: must be 32, 64, or 128 (REQUIRED)
-        if "gain" not in fields:
-            errors.append("Gain is required.")
-        elif not fields["gain"].HasField("number_value"):
-            errors.append("Gain must be a valid number.")
-        else:
-            gain = fields["gain"].number_value
-            if gain not in [32, 64, 128]:
-                errors.append("Gain must be 32, 64, or 128.")
+        # Validate gain: must be 32, 64, or 128 (OPTIONAL)
+        if "gain" in fields:
+            if not fields["gain"].HasField("number_value"):
+                errors.append("Gain must be a valid number.")
+            else:
+                gain = fields["gain"].number_value
+                if gain not in [32, 64, 128]:
+                    errors.append("Gain must be 32, 64, or 128.")
 
-        # Validate doutPin: must be a valid GPIO pin number (1-40 for Raspberry Pi) (REQUIRED)
-        if "doutPin" not in fields:
-            errors.append("Data Out pin is required.")
-        elif not fields["doutPin"].HasField("number_value"):
-            errors.append("Data Out pin must be a valid number.")
-        else:
-            dout_pin = int(fields["doutPin"].number_value)
-            if not (1 <= dout_pin <= 40):
-                errors.append(
-                    "Data Out pin must be a valid GPIO pin number (1-40)."
-                )
+        # Validate doutPin: must be a valid GPIO pin number (1-40 for Raspberry Pi) (OPTIONAL)
+        if "doutPin" in fields:
+            if not fields["doutPin"].HasField("number_value"):
+                errors.append("Data Out pin must be a valid number.")
+            else:
+                dout_pin = int(fields["doutPin"].number_value)
+                if not (1 <= dout_pin <= 40):
+                    errors.append(
+                        "Data Out pin must be a valid GPIO pin number (1-40)."
+                    )
 
-        # Validate sckPin: must be a valid GPIO pin number (1-40 for Raspberry Pi) (REQUIRED)
-        if "sckPin" not in fields:
-            errors.append("Clock pin is required.")
-        elif not fields["sckPin"].HasField("number_value"):
-            errors.append("Clock pin must be a valid number.")
-        else:
-            sck_pin = int(fields["sckPin"].number_value)
-            if not (1 <= sck_pin <= 40):
-                errors.append("Clock pin must be a valid GPIO pin number (1-40).")
+        # Validate sckPin: must be a valid GPIO pin number (1-40 for Raspberry Pi) (OPTIONAL)
+        if "sckPin" in fields:
+            if not fields["sckPin"].HasField("number_value"):
+                errors.append("Clock pin must be a valid number.")
+            else:
+                sck_pin = int(fields["sckPin"].number_value)
+                if not (1 <= sck_pin <= 40):
+                    errors.append("Clock pin must be a valid GPIO pin number (1-40).")
 
-        # Validate numberOfReadings: must be positive integer less than 100 (REQUIRED)
-        if "numberOfReadings" not in fields:
-            errors.append("Number of readings is required.")
-        elif not fields["numberOfReadings"].HasField("number_value"):
-            errors.append("Number of readings must be a valid number.")
-        else:
-            num_readings = int(fields["numberOfReadings"].number_value)
-            if not (1 <= num_readings < 100):
-                errors.append(
-                    "Number of readings must be a positive integer less than 100."
-                )
+        # Validate numberOfReadings: must be positive integer less than 100 (OPTIONAL)
+        if "numberOfReadings" in fields:
+            if not fields["numberOfReadings"].HasField("number_value"):
+                errors.append("Number of readings must be a valid number.")
+            else:
+                num_readings = int(fields["numberOfReadings"].number_value)
+                if not (1 <= num_readings < 100):
+                    errors.append(
+                        "Number of readings must be a positive integer less than 100."
+                    )
 
-        # Validate tare_offset: must be a non-positive floating point value (REQUIRED)
-        if "tare_offset" not in fields:
-            errors.append("Tare offset is required.")
-        elif not fields["tare_offset"].HasField("number_value"):
-            errors.append("Tare offset must be a valid number.")
-        else:
-            tare_offset = fields["tare_offset"].number_value
-            if tare_offset > 0:
-                errors.append(
-                    "Tare offset must be a non-positive floating point value (≤ 0.0)."
-                )
+        # Validate tare_offset: must be a non-positive floating point value (OPTIONAL)
+        if "tare_offset" in fields:
+            if not fields["tare_offset"].HasField("number_value"):
+                errors.append("Tare offset must be a valid number.")
+            else:
+                tare_offset = fields["tare_offset"].number_value
+                if tare_offset > 0:
+                    errors.append(
+                        "Tare offset must be a non-positive floating point value (≤ 0.0)."
+                    )
 
         # If there are validation errors, raise an exception with all errors
         if errors:
             raise Exception("; ".join(errors))
 
-        return ["gain", "doutPin", "sckPin", "numberOfReadings", "tare_offset"], []  # Return (required_dependencies, optional_dependencies)
+        return [], ["gain", "doutPin", "sckPin", "numberOfReadings", "tare_offset"]
 
     def reconfigure(
         self,
