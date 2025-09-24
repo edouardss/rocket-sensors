@@ -44,12 +44,10 @@ class TestLoadCell:
         with pytest.raises(Exception, match="Tare offset must be a non-positive floating point value"):
             LoadCell.validate_config(config)
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_initialization_defaults(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, mock_component_config, mock_dependencies):
+    def test_initialization_defaults(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test initialization with default values."""
-        mock_struct_to_dict.return_value = {}
         
         loadcell = LoadCell("test-loadcell")
         loadcell.reconfigure(mock_component_config, mock_dependencies)
@@ -60,10 +58,9 @@ class TestLoadCell:
         assert loadcell.numberOfReadings == 3
         assert loadcell.tare_offset == 0.0
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_initialization_custom_values(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, create_config_with_attributes, mock_dependencies):
+    def test_initialization_custom_values(self, mock_hx711_class, mock_gpio, create_config_with_attributes, mock_dependencies):
         """Test initialization with custom values."""
         config = create_config_with_attributes({
             "gain": 128,
@@ -72,14 +69,6 @@ class TestLoadCell:
             "numberOfReadings": 5,
             "tare_offset": -100.0
         })
-        
-        mock_struct_to_dict.return_value = {
-            "gain": 128,
-            "doutPin": 7,
-            "sckPin": 8,
-            "numberOfReadings": 5,
-            "tare_offset": -100.0
-        }
         
         loadcell = LoadCell("test-loadcell")
         loadcell.reconfigure(config, mock_dependencies)
@@ -90,12 +79,10 @@ class TestLoadCell:
         assert loadcell.numberOfReadings == 5
         assert loadcell.tare_offset == -100.0
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_hx711_creation(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, mock_component_config, mock_dependencies):
+    def test_hx711_creation(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test HX711 sensor creation."""
-        mock_struct_to_dict.return_value = {}
         mock_hx711_instance = Mock()
         mock_hx711_instance.reset = Mock()
         mock_hx711_class.return_value = mock_hx711_instance
@@ -113,12 +100,10 @@ class TestLoadCell:
         )
         mock_hx711_instance.reset.assert_called_once()
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_hx711_initialization_error(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, mock_component_config, mock_dependencies):
+    def test_hx711_initialization_error(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test HX711 initialization error handling."""
-        mock_struct_to_dict.return_value = {}
         
         # Create a mock that raises an exception when called
         def mock_hx711_constructor(*args, **kwargs):
@@ -135,12 +120,10 @@ class TestLoadCell:
         # The error should be caught and logged, hx711 should remain None
         assert loadcell.hx711 is None
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_readings_success(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, mock_component_config, mock_dependencies):
+    def test_readings_success(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test successful sensor readings."""
-        mock_struct_to_dict.return_value = {}
         mock_hx711_instance = Mock()
         mock_hx711_instance.get_raw_data.return_value = [8200, 8205, 8195]  # ~1kg readings
         mock_hx711_class.return_value = mock_hx711_instance
@@ -162,13 +145,11 @@ class TestLoadCell:
         expected_weight = sum([1.0, 1.0006, 0.9994]) / 3  # Converted from raw values
         assert abs(readings["weight"] - expected_weight) < 0.001
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_readings_with_tare_offset(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, create_config_with_attributes, mock_dependencies):
+    def test_readings_with_tare_offset(self, mock_hx711_class, mock_gpio, create_config_with_attributes, mock_dependencies):
         """Test readings with tare offset applied."""
         config = create_config_with_attributes({"tare_offset": -8200})  # -1kg offset
-        mock_struct_to_dict.return_value = {"tare_offset": -8200}
         mock_hx711_instance = Mock()
         mock_hx711_instance.get_raw_data.return_value = [8200, 8205, 8195]  # ~1kg readings
         mock_hx711_class.return_value = mock_hx711_instance
@@ -182,12 +163,10 @@ class TestLoadCell:
         expected_weight = sum([2.0, 2.0006, 1.9994]) / 3
         assert abs(readings["weight"] - expected_weight) < 0.001
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_readings_error_handling(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, mock_component_config, mock_dependencies):
+    def test_readings_error_handling(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test readings error handling."""
-        mock_struct_to_dict.return_value = {}
         mock_hx711_instance = Mock()
         mock_hx711_instance.get_raw_data.side_effect = Exception("Sensor error")
         mock_hx711_class.return_value = mock_hx711_instance
@@ -201,12 +180,10 @@ class TestLoadCell:
         # HX711 should be cleaned up after error
         assert loadcell.hx711 is None
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_tare_success(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, mock_component_config, mock_dependencies):
+    def test_tare_success(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test successful tare operation."""
-        mock_struct_to_dict.return_value = {}
         mock_hx711_instance = Mock()
         mock_hx711_instance.get_raw_data.return_value = [1000, 1005, 995]
         mock_hx711_class.return_value = mock_hx711_instance
@@ -220,12 +197,10 @@ class TestLoadCell:
         expected_offset = (1000 + 1005 + 995) / 3
         assert loadcell.tare_offset == expected_offset
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_tare_error_handling(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, mock_component_config, mock_dependencies):
+    def test_tare_error_handling(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test tare error handling."""
-        mock_struct_to_dict.return_value = {}
         mock_hx711_instance = Mock()
         mock_hx711_instance.get_raw_data.side_effect = Exception("Tare error")
         mock_hx711_class.return_value = mock_hx711_instance
@@ -239,12 +214,10 @@ class TestLoadCell:
         # HX711 should be cleaned up after error
         assert loadcell.hx711 is None
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_commands_tare(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, mock_component_config, mock_dependencies):
+    def test_commands_tare(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test tare command execution."""
-        mock_struct_to_dict.return_value = {}
         mock_hx711_instance = Mock()
         mock_hx711_instance.get_raw_data.return_value = [1000, 1005, 995]
         mock_hx711_class.return_value = mock_hx711_instance
@@ -259,12 +232,10 @@ class TestLoadCell:
         assert isinstance(result["tare"], float)
         assert result["tare"] > 0  # Should be positive tare offset in kg
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_commands_unknown(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, mock_component_config, mock_dependencies):
+    def test_commands_unknown(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test handling of unknown commands."""
-        mock_struct_to_dict.return_value = {}
         
         loadcell = LoadCell("test-loadcell")
         loadcell.reconfigure(mock_component_config, mock_dependencies)
@@ -276,12 +247,10 @@ class TestLoadCell:
         # Unknown commands return False
         assert result["unknown_command"] is False
     
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_cleanup(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, mock_component_config, mock_dependencies):
+    def test_cleanup(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test resource cleanup."""
-        mock_struct_to_dict.return_value = {}
         mock_hx711_instance = Mock()
         mock_hx711_class.return_value = mock_hx711_instance
         
@@ -295,10 +264,9 @@ class TestLoadCell:
         mock_gpio.cleanup.assert_called_once_with((5, 6))
     
     @pytest.mark.integration
-    @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
-    def test_full_workflow(self, mock_hx711_class, mock_gpio, mock_struct_to_dict, create_config_with_attributes, mock_dependencies):
+    def test_full_workflow(self, mock_hx711_class, mock_gpio, create_config_with_attributes, mock_dependencies):
         """Test complete LoadCell workflow: configure, tare, read."""
         config = create_config_with_attributes({
             "gain": 128,
@@ -308,13 +276,6 @@ class TestLoadCell:
             "tare_offset": 0.0
         })
         
-        mock_struct_to_dict.return_value = {
-            "gain": 128,
-            "doutPin": 7,
-            "sckPin": 8,
-            "numberOfReadings": 5,
-            "tare_offset": 0.0
-        }
         
         mock_hx711_instance = Mock()
         mock_hx711_instance.get_raw_data.return_value = [8200, 8205, 8195, 8202, 8198]

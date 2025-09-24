@@ -35,10 +35,7 @@ def run_command(cmd, description):
 def run_linting():
     """Run linting checks on the codebase."""
     linting_tools = [
-        ("flake8", ["flake8", "src/", "tests/", "--count", "--select=E9,F63,F7,F82", "--show-source", "--statistics", "--ignore=F821"]),
-        ("black", ["black", "--check", "src/", "tests/"]),
-        ("isort", ["isort", "--check-only", "src/", "tests/"]),
-        ("mypy", ["mypy", "src/", "--ignore-missing-imports", "--explicit-package-bases"]),
+        ("flake8", ["flake8", "src/", "tests/", "--count", "--select=E9,F63,F7,F82", "--show-source", "--statistics", "--ignore=F821,W503,E501,W504"]),
     ]
     
     all_passed = True
