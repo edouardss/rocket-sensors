@@ -26,13 +26,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     
-    - name: Run unit tests
+    - name: Run comprehensive unit tests
       run: |
-        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html -m "not hardware"
+        python test_runner.py --type unit --coverage --verbose
     
-    - name: Run integration tests
+    - name: Run comprehensive integration tests
       run: |
-        pytest tests/ -v -m "integration"
+        python test_runner.py --type integration --verbose
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -42,68 +42,33 @@ jobs:
         name: codecov-umbrella
         fail_ci_if_error: false
 
-  test-loadcell:
+  test-modules:
     runs-on: ubuntu-latest
     needs: test
+    strategy:
+      matrix:
+        module: [loadcell, mpu, bmp]
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python 3.10
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: 3.10
+        python-version: 3.11
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     
-    - name: Run LoadCell specific tests
+    - name: Run ${{ matrix.module }} comprehensive tests
       run: |
-        pytest tests/loadcell/ -v --cov=src.models.loadcell --cov-report=xml
-
-  test-mpu:
-    runs-on: ubuntu-latest
-    needs: test
+        python test_runner.py --module ${{ matrix.module }} --coverage --verbose
     
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.10
-    
-    - name: Install dependencies
+    - name: Run ${{ matrix.module }} simplified tests
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Run MPU specific tests
-      run: |
-        pytest tests/mpu/ -v --cov=src.models.mpu --cov-report=xml
-
-  test-bmp:
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.10
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Run BMP specific tests
-      run: |
-        pytest tests/bmp/ -v --cov=src.models.bmp --cov-report=xml
+        python test_runner.py --module ${{ matrix.module }} --simple --coverage --verbose
 
   lint:
     runs-on: ubuntu-latest
@@ -111,10 +76,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python 3.10
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: 3.10
+        python-version: 3.11
     
     - name: Install linting dependencies
       run: |
@@ -137,3 +102,51 @@ jobs:
     - name: Run mypy
       run: |
         mypy src/ --ignore-missing-imports
+
+  test-simplified:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run all simplified tests
+      run: |
+        python test_runner.py --simple --coverage --verbose
+    
+    - name: Run simplified unit tests only
+      run: |
+        python test_runner.py --simple --type unit --verbose
+
+  test-hardware:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run hardware tests (if any)
+      run: |
+        python test_runner.py --hardware --verbose
+      continue-on-error: true
