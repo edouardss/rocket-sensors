@@ -1,23 +1,26 @@
 # Testing Framework for Rocket Sensors
 
-This directory contains a comprehensive, modular testing framework for the rocket-sensors project. The framework is designed to be easily extensible for testing all sensor modules (LoadCell, MPU, BMP) and future modules.
+This directory contains a unified, modular testing framework for the rocket-sensors project. The framework provides both comprehensive and simplified testing approaches, designed to be easily extensible for testing all sensor modules (LoadCell, MPU, BMP) and future modules.
 
 ## Framework Structure
 
 ```
 tests/
-├── conftest.py              # Shared fixtures and mocks
-├── pytest.ini              # Pytest configuration
-├── README.md               # This file
-├── loadcell/               # LoadCell module tests
+├── conftest.py                  # Shared fixtures and mocks
+├── pytest.ini                  # Pytest configuration
+├── README.md                   # This file
+├── loadcell/                   # LoadCell module tests
 │   ├── __init__.py
-│   └── test_loadcell.py
-├── mpu/                    # MPU module tests
+│   ├── test_loadcell.py         # Comprehensive tests
+│   └── test_loadcell_simple.py  # Simplified tests
+├── mpu/                        # MPU module tests
 │   ├── __init__.py
-│   └── test_mpu.py
-└── bmp/                    # BMP module tests
+│   ├── test_mpu.py              # Comprehensive tests
+│   └── test_mpu_simple.py       # Simplified tests (to be created)
+└── bmp/                        # BMP module tests
     ├── __init__.py
-    └── test_bmp.py
+    ├── test_bmp.py              # Comprehensive tests
+    └── test_bmp_simple.py       # Simplified tests (to be created)
 ```
 
 ## Test Categories
@@ -41,29 +44,27 @@ tests/
 
 ## Running Tests
 
-### Using the Test Runner Script
+### Using the Unified Test Runner
 
 ```bash
-# Run all tests (unit tests only)
-./test_runner.py
+# Activate virtual environment
+source venv/bin/activate
 
-# Run tests for specific module
-./test_runner.py --module loadcell
-./test_runner.py --module mpu
-./test_runner.py --module bmp
+# Run comprehensive tests (default)
+python test_runner.py --module loadcell
+python test_runner.py --module loadcell --type unit
+python test_runner.py --module loadcell --coverage
 
-# Run specific test types
-./test_runner.py --type unit
-./test_runner.py --type integration
+# Run simplified tests
+python test_runner.py --module loadcell --simple
+python test_runner.py --module loadcell --simple --type unit
+python test_runner.py --module loadcell --simple --coverage
 
-# Run with coverage
-./test_runner.py --coverage
-
-# Include hardware tests
-./test_runner.py --hardware
-
-# Verbose output
-./test_runner.py --verbose
+# Run all tests
+python test_runner.py                    # All comprehensive tests
+python test_runner.py --simple          # All simplified tests
+python test_runner.py --type unit       # All unit tests
+python test_runner.py --hardware        # Include hardware tests
 ```
 
 ### Using pytest directly
@@ -77,6 +78,10 @@ pytest tests/loadcell/
 pytest tests/mpu/
 pytest tests/bmp/
 
+# Run specific test files
+pytest tests/loadcell/test_loadcell.py              # Comprehensive tests
+pytest tests/loadcell/test_loadcell_simple.py       # Simplified tests
+
 # Run with coverage
 pytest --cov=src --cov-report=html
 
@@ -85,12 +90,37 @@ pytest -m unit
 pytest -m integration
 pytest -m "not hardware"
 
-# Run specific test file
-pytest tests/loadcell/test_loadcell.py
-
 # Run specific test function
 pytest tests/loadcell/test_loadcell.py::TestLoadCellValidation::test_validate_config_valid_defaults
 ```
+
+## Testing Approaches
+
+### Comprehensive Tests (`test_*.py`)
+- **Multiple test classes** per module (Validation, Initialization, Readings, etc.)
+- **Detailed mocking** with extensive fixtures
+- **Complete coverage** of all functionality
+- **Best for**: CI/CD, thorough testing, debugging complex issues
+
+### Simplified Tests (`test_*_simple.py`)
+- **Single test class** per module
+- **Essential fixtures** only
+- **Focused testing** on core functionality
+- **Best for**: Development, quick testing, learning the codebase
+
+### When to Use Which
+
+**Use Comprehensive Tests when:**
+- Running CI/CD pipelines
+- Need thorough validation
+- Debugging complex issues
+- Preparing for production
+
+**Use Simplified Tests when:**
+- Developing new features
+- Quick validation during development
+- Learning how the code works
+- Fast feedback loops
 
 ## Test Coverage
 
@@ -161,17 +191,67 @@ The framework uses comprehensive mocking to test without hardware:
 
 To add tests for a new sensor module:
 
-1. Create a new directory: `tests/new_module/`
-2. Add `__init__.py` file
-3. Create `test_new_module.py` with test classes:
-   - `TestNewModuleValidation`
-   - `TestNewModuleInitialization`
-   - `TestNewModuleReadings`
-   - `TestNewModuleTare` (if applicable)
-   - `TestNewModuleCommands`
-   - `TestNewModuleIntegration`
-4. Add module-specific fixtures to `conftest.py`
-5. Update the test runner script if needed
+### 1. Create Module Directory
+```bash
+mkdir tests/new_module/
+touch tests/new_module/__init__.py
+```
+
+### 2. Create Comprehensive Tests
+Create `tests/new_module/test_new_module.py` with test classes:
+```python
+@pytest.mark.unit
+class TestNewModuleValidation:
+    """Test configuration validation"""
+
+@pytest.mark.unit  
+class TestNewModuleInitialization:
+    """Test initialization and configuration"""
+
+@pytest.mark.unit
+class TestNewModuleReadings:
+    """Test sensor readings"""
+
+@pytest.mark.unit
+class TestNewModuleTare:
+    """Test tare functionality (if applicable)"""
+
+@pytest.mark.unit
+class TestNewModuleCommands:
+    """Test command handling"""
+
+@pytest.mark.integration
+class TestNewModuleIntegration:
+    """Test complete workflows"""
+```
+
+### 3. Create Simplified Tests
+Create `tests/new_module/test_new_module_simple.py`:
+```python
+@pytest.mark.unit
+class TestNewModule:
+    """All NewModule tests in one class"""
+    
+    def test_validation_valid_config(self):
+        """Test validation with valid configuration"""
+        
+    def test_initialization_defaults(self):
+        """Test initialization with default values"""
+        
+    def test_readings_success(self):
+        """Test successful sensor readings"""
+        
+    def test_tare_success(self):
+        """Test successful tare operation"""
+        
+    # ... other test methods
+```
+
+### 4. Add Module-Specific Fixtures
+Add any module-specific fixtures to `conftest.py`
+
+### 5. Update Test Runner
+The unified test runner automatically discovers new modules - no updates needed!
 
 ## Continuous Integration
 
