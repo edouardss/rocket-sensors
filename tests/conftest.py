@@ -8,6 +8,8 @@ from viam.proto.common import ResourceName
 from viam.resource.base import ResourceBase
 from viam.utils import struct_to_dict
 
+# No need to mock struct_to_dict - it's a standard Viam utility function
+
 # Session-scoped fixture to register all models once per test session
 @pytest.fixture(scope="session", autouse=True)
 def register_all_models():
@@ -223,46 +225,36 @@ def bmp_config_data():
 def create_config_with_attributes():
     """Factory function to create ComponentConfig with specific attributes."""
     def _create_config(attributes: Dict[str, Any]) -> ComponentConfig:
+        from google.protobuf.struct_pb2 import Struct, Value
+        
         config = Mock(spec=ComponentConfig)
         config.name = "test-sensor"
         config.namespace = "edss"
         config.type = "sensor"
         config.model = "test-model"
         config.api = "sensor"
-        config.attributes = Mock()
         
-        # Convert attributes to protobuf field format
-        fields = {}
+        # Create a proper protobuf Struct
+        struct = Struct()
         for key, value in attributes.items():
-            field = Mock()
             if isinstance(value, str):
-                field.HasField = Mock(return_value=True)
-                field.string_value = value
-                field.list_value = Mock()
-                field.list_value.values = []
+                struct.fields[key].string_value = value
             elif isinstance(value, (int, float)):
-                field.HasField = Mock(return_value=True)
-                field.number_value = value
-                field.list_value = Mock()
-                field.list_value.values = []
+                struct.fields[key].number_value = value
             elif isinstance(value, bool):
-                field.HasField = Mock(return_value=True)
-                field.bool_value = value
-                field.list_value = Mock()
-                field.list_value.values = []
-            else:
-                field.HasField = Mock(return_value=False)
-                field.list_value = Mock()
-                field.list_value.values = []
-            fields[key] = field
+                struct.fields[key].bool_value = value
+            elif isinstance(value, list):
+                # Handle lists by creating a ListValue
+                list_value = struct.fields[key].list_value
+                for item in value:
+                    if isinstance(item, str):
+                        list_value.values.add().string_value = item
+                    elif isinstance(item, (int, float)):
+                        list_value.values.add().number_value = item
+                    elif isinstance(item, bool):
+                        list_value.values.add().bool_value = item
         
-        config.attributes.fields = fields
-        
-        # Mock struct_to_dict to return the original attributes
-        def mock_struct_to_dict(attrs):
-            return attributes
-        config.attributes.struct_to_dict = mock_struct_to_dict
-        
+        config.attributes = struct
         return config
     return _create_config
 

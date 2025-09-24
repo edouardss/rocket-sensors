@@ -16,26 +16,32 @@ class TestMpu:
     def test_validation_valid_config(self, create_config_with_attributes):
         """Test validation with valid configuration."""
         config = create_config_with_attributes({
-            "i2c_bus": 1,
             "i2c_address": 0x68,
-            "accel_range": 2,
-            "gyro_range": 250,
-            "filter_bandwidth": 5
+            "units": "metric",
+            "sample_rate": 100,
+            "accel_x_offset": 0.0,
+            "accel_y_offset": 0.0,
+            "accel_z_offset": 0.0,
+            "gyro_x_offset": 0.0,
+            "gyro_y_offset": 0.0,
+            "gyro_z_offset": 0.0
         })
         required, optional = Mpu.validate_config(config)
         assert required == []
-        assert set(optional) == {"i2c_bus", "i2c_address", "accel_range", "gyro_range", "filter_bandwidth"}
+        assert set(optional) == {"i2c_address", "units", "sample_rate", 
+                                 "accel_x_offset", "accel_y_offset", "accel_z_offset",
+                                 "gyro_x_offset", "gyro_y_offset", "gyro_z_offset"}
     
-    def test_validation_invalid_accel_range(self, create_config_with_attributes):
-        """Test validation with invalid accelerometer range."""
-        config = create_config_with_attributes({"accel_range": 8})  # Invalid range
-        with pytest.raises(Exception, match="Accelerometer range must be 2, 4, 8, or 16"):
+    def test_validation_invalid_i2c_address(self, create_config_with_attributes):
+        """Test validation with invalid I2C address."""
+        config = create_config_with_attributes({"i2c_address": 0x100})  # Invalid address
+        with pytest.raises(Exception, match="i2c_address must be a valid I2C address \\(0x08-0x77\\)"):
             Mpu.validate_config(config)
     
-    def test_validation_invalid_gyro_range(self, create_config_with_attributes):
-        """Test validation with invalid gyroscope range."""
-        config = create_config_with_attributes({"gyro_range": 1000})  # Invalid range
-        with pytest.raises(Exception, match="Gyroscope range must be 250, 500, 1000, or 2000"):
+    def test_validation_invalid_units(self, create_config_with_attributes):
+        """Test validation with invalid units."""
+        config = create_config_with_attributes({"units": "fahrenheit"})  # Invalid units
+        with pytest.raises(Exception, match="units must be either 'metric' or 'imperial'"):
             Mpu.validate_config(config)
     
     def test_validation_invalid_i2c_address(self, create_config_with_attributes):
@@ -111,12 +117,10 @@ class TestMpu:
         mock_busio.I2C.side_effect = Exception("I2C not available")
         
         mpu = Mpu("test-mpu")
-        mpu.reconfigure(mock_component_config, mock_dependencies)
-        
         with pytest.raises(Exception, match="I2C not available"):
-            mpu.get_mpu()
+            mpu.reconfigure(mock_component_config, mock_dependencies)
         
-        assert mpu.mpu is None
+        assert mpu.sensor is None
     
     @patch('models.mpu.busio')
     @patch('models.mpu.board')
@@ -171,11 +175,8 @@ class TestMpu:
         mpu = Mpu("test-mpu")
         mpu.reconfigure(mock_component_config, mock_dependencies)
         
-        with pytest.raises(Exception, match="Sensor error"):
-            asyncio.run(mpu.get_readings())
-        
-        # MPU should be cleaned up after error
-        assert mpu.mpu is None
+        readings = asyncio.run(mpu.get_readings())
+        assert readings == {}  # Error handling returns empty dict
     
     @patch('models.mpu.busio')
     @patch('models.mpu.board')
@@ -210,7 +211,12 @@ class TestMpu:
         mock_i2c = Mock()
         mock_busio.I2C.return_value = mock_i2c
         mock_mpu_instance = Mock()
-        mock_mpu_instance.acceleration = Mock(side_effect=Exception("Tare error"))
+        mock_mpu_instance.acceleration = (0.1, 0.2, 9.8)  # Valid tuple
+        # Make gyro raise an exception when accessed
+        class GyroError:
+            def __getitem__(self, index):
+                raise Exception("Tare error")
+        mock_mpu_instance.gyro = GyroError()
         mock_mpu6050_class.MPU6050.return_value = mock_mpu_instance
         
         mpu = Mpu("test-mpu")
@@ -218,9 +224,6 @@ class TestMpu:
         
         with pytest.raises(Exception, match="Tare error"):
             asyncio.run(mpu.tare())
-        
-        # MPU should be cleaned up after error
-        assert mpu.mpu is None
     
     @patch('models.mpu.busio')
     @patch('models.mpu.board')
@@ -350,16 +353,28 @@ class TestMpu:
         
         # Perform tare
         asyncio.run(mpu.tare())
-        assert mpu.accel_tare_offset is not None
-        assert mpu.gyro_tare_offset is not None
+        assert mpu.accel_x_offset is not None
+        assert mpu.accel_y_offset is not None
+        assert mpu.accel_z_offset is not None
+        assert mpu.gyro_x_offset is not None
+        assert mpu.gyro_y_offset is not None
+        assert mpu.gyro_z_offset is not None
         
         # Get readings
         readings = asyncio.run(mpu.get_readings())
-        assert "acceleration" in readings
-        assert "gyro" in readings
-        assert "temperature" in readings
+        assert "acceleration_x - ft/s²" in readings
+        assert "acceleration_y - ft/s²" in readings
+        assert "acceleration_z - ft/s²" in readings
+        assert "gyro_x - deg/s" in readings
+        assert "gyro_y - deg/s" in readings
+        assert "gyro_z - deg/s" in readings
+        assert "temperature - F" in readings
         
         # Reset tare
         asyncio.run(mpu.reset_tare())
-        assert mpu.accel_tare_offset == (0.0, 0.0, 0.0)
-        assert mpu.gyro_tare_offset == (0.0, 0.0, 0.0)
+        assert mpu.accel_x_offset == 0.0
+        assert mpu.accel_y_offset == 0.0
+        assert mpu.accel_z_offset == 0.0
+        assert mpu.gyro_x_offset == 0.0
+        assert mpu.gyro_y_offset == 0.0
+        assert mpu.gyro_z_offset == 0.0

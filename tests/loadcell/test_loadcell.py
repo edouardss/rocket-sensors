@@ -113,7 +113,6 @@ class TestLoadCell:
         )
         mock_hx711_instance.reset.assert_called_once()
     
-    @pytest.mark.skip(reason="Error handling test needs investigation")
     @patch('models.loadcell.struct_to_dict')
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
@@ -128,8 +127,10 @@ class TestLoadCell:
         mock_hx711_class.side_effect = mock_hx711_constructor
         
         loadcell = LoadCell("test-loadcell")
-        # The error should be caught and logged, not raised
-        loadcell.reconfigure(mock_component_config, mock_dependencies)
+        
+        # The error should be raised during reconfigure when get_hx711() is called
+        with pytest.raises(Exception, match="Hardware not available"):
+            loadcell.reconfigure(mock_component_config, mock_dependencies)
         
         # The error should be caught and logged, hx711 should remain None
         assert loadcell.hx711 is None

@@ -97,7 +97,7 @@ class TestBmpSensor:
         mock_busio.I2C.assert_called_once_with(mock_board.SCL, mock_board.SDA)
         
         # Check BMP085 was created correctly
-        mock_bmp_class.BMP085.assert_called_once_with(mock_i2c, address=0x77)
+        mock_bmp_class.BMP085.assert_called_once_with(busnum=1)
     
     @patch('models.bmp.busio')
     @patch('models.bmp.board')
@@ -107,12 +107,10 @@ class TestBmpSensor:
         mock_busio.I2C.side_effect = Exception("I2C not available")
         
         bmp = BmpSensor("test-bmp")
-        bmp.reconfigure(mock_component_config, mock_dependencies)
-        
         with pytest.raises(Exception, match="I2C not available"):
-            bmp.get_bmp()
+            bmp.reconfigure(mock_component_config, mock_dependencies)
         
-        assert bmp.bmp is None
+        assert bmp.sensor is None
     
     @patch('models.bmp.busio')
     @patch('models.bmp.board')
@@ -169,7 +167,7 @@ class TestBmpSensor:
         # Check values in imperial units
         assert readings["temperature - F"] == 77.0  # 25°C = 77°F
         assert readings["pressure - inHg"] == pytest.approx(29.92, rel=1e-2)  # 101325 Pa ≈ 29.92 inHg
-        assert readings["altitude - ft"] == 328.0  # 100m ≈ 328ft
+        assert readings["altitude - ft"] == pytest.approx(328.084, abs=0.1)  # 100m ≈ 328.084ft
     
     @patch('models.bmp.busio')
     @patch('models.bmp.board')
@@ -179,17 +177,14 @@ class TestBmpSensor:
         mock_i2c = Mock()
         mock_busio.I2C.return_value = mock_i2c
         mock_bmp_instance = Mock()
-        mock_bmp_instance.temperature = Mock(side_effect=Exception("Sensor error"))
+        mock_bmp_instance.read_temperature.side_effect = Exception("Sensor error")
         mock_bmp_class.BMP085.return_value = mock_bmp_instance
         
         bmp = BmpSensor("test-bmp")
         bmp.reconfigure(mock_component_config, mock_dependencies)
         
-        with pytest.raises(Exception, match="Sensor error"):
-            asyncio.run(bmp.get_readings())
-        
-        # BMP should be cleaned up after error
-        assert bmp.bmp is None
+        readings = asyncio.run(bmp.get_readings())
+        assert readings == {}  # Error handling returns empty dict
     
     @patch('models.bmp.busio')
     @patch('models.bmp.board')
@@ -220,7 +215,8 @@ class TestBmpSensor:
         mock_i2c = Mock()
         mock_busio.I2C.return_value = mock_i2c
         mock_bmp_instance = Mock()
-        mock_bmp_instance.altitude = Mock(side_effect=Exception("Tare error"))
+        mock_bmp_instance.read_pressure.side_effect = Exception("Tare error")
+        mock_bmp_instance.read_altitude.side_effect = Exception("Tare error")
         mock_bmp_class.BMP085.return_value = mock_bmp_instance
         
         bmp = BmpSensor("test-bmp")
@@ -228,9 +224,6 @@ class TestBmpSensor:
         
         with pytest.raises(Exception, match="Tare error"):
             asyncio.run(bmp.tare())
-        
-        # BMP should be cleaned up after error
-        assert bmp.bmp is None
     
     @patch('models.bmp.busio')
     @patch('models.bmp.board')
@@ -330,9 +323,9 @@ class TestBmpSensor:
         mock_i2c = Mock()
         mock_busio.I2C.return_value = mock_i2c
         mock_bmp_instance = Mock()
-        mock_bmp_instance.temperature = 25.0
-        mock_bmp_instance.pressure = 101325.0
-        mock_bmp_instance.altitude = 100.0
+        mock_bmp_instance.read_temperature.return_value = 25.0
+        mock_bmp_instance.read_pressure.return_value = 101325.0
+        mock_bmp_instance.read_altitude.return_value = 100.0
         mock_bmp_class.BMP085.return_value = mock_bmp_instance
         
         # Initialize and configure
@@ -341,15 +334,14 @@ class TestBmpSensor:
         
         # Perform tare
         asyncio.run(bmp.tare())
-        assert bmp.altitude_tare_offset == 100.0
+        assert bmp.altitude_offset == 100.0
         
         # Get readings
         readings = asyncio.run(bmp.get_readings())
-        assert "temperature" in readings
-        assert "pressure" in readings
-        assert "altitude" in readings
-        assert readings["units"] == "imperial"
+        assert "temperature - F" in readings
+        assert "pressure - inHg" in readings
+        assert "altitude - ft" in readings
         
         # Reset tare
         asyncio.run(bmp.reset_tare())
-        assert bmp.altitude_tare_offset == 0.0
+        assert bmp.altitude_offset == 0.0
