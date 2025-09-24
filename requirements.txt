@@ -18,3 +18,9 @@ typing-extensions>=4.15.0
 
 # Raspberry Pi GPIO Library (only available on Raspberry Pi)
 RPi.GPIO>=0.7.1; sys_platform == "linux" and platform_machine == "aarch64"
+
+# Testing dependencies
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
