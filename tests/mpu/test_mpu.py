@@ -41,7 +41,7 @@ class TestMpu:
     def test_validation_invalid_i2c_address(self, create_config_with_attributes):
         """Test validation with invalid I2C address."""
         config = create_config_with_attributes({"i2c_address": 0x100})  # Invalid address
-        with pytest.raises(Exception, match="I2C address must be between 0x68 and 0x69"):
+        with pytest.raises(Exception, match="i2c_address must be a valid I2C address \\(0x08-0x77\\)"):
             Mpu.validate_config(config)
     
     @patch('models.mpu.busio')
@@ -57,11 +57,9 @@ class TestMpu:
         mpu = Mpu("test-mpu")
         mpu.reconfigure(mock_component_config, mock_dependencies)
         
-        assert mpu.i2c_bus == 1
-        assert mpu.i2c_address == 0x68
-        assert mpu.accel_range == 2
-        assert mpu.gyro_range == 250
-        assert mpu.filter_bandwidth == 5
+        assert mpu.i2c_address == 0x68  # Default address
+        assert mpu.units == "metric"  # Default units
+        assert mpu.sample_rate == 100  # Default sample rate
     
     @patch('models.mpu.busio')
     @patch('models.mpu.board')
@@ -69,11 +67,9 @@ class TestMpu:
     def test_initialization_custom_values(self, mock_mpu6050_class, mock_board, mock_busio, create_config_with_attributes, mock_dependencies):
         """Test initialization with custom values."""
         config = create_config_with_attributes({
-            "i2c_bus": 0,
             "i2c_address": 0x69,
-            "accel_range": 4,
-            "gyro_range": 500,
-            "filter_bandwidth": 10
+            "units": "imperial",
+            "sample_rate": 200
         })
         
         mock_i2c = Mock()
@@ -84,11 +80,9 @@ class TestMpu:
         mpu = Mpu("test-mpu")
         mpu.reconfigure(config, mock_dependencies)
         
-        assert mpu.i2c_bus == 0
         assert mpu.i2c_address == 0x69
-        assert mpu.accel_range == 4
-        assert mpu.gyro_range == 500
-        assert mpu.filter_bandwidth == 10
+        assert mpu.units == "imperial"
+        assert mpu.sample_rate == 200
     
     @patch('models.mpu.busio')
     @patch('models.mpu.board')
@@ -142,35 +136,26 @@ class TestMpu:
         
         readings = asyncio.run(mpu.get_readings())
         
-        assert "acceleration" in readings
-        assert "gyro" in readings
-        assert "temperature" in readings
-        assert "i2c_bus" in readings
-        assert "i2c_address" in readings
-        assert "accel_range" in readings
-        assert "gyro_range" in readings
-        assert "filter_bandwidth" in readings
+        assert "acceleration_x - m/s²" in readings
+        assert "acceleration_y - m/s²" in readings
+        assert "acceleration_z - m/s²" in readings
+        assert "gyro_x - rad/s" in readings
+        assert "gyro_y - rad/s" in readings
+        assert "gyro_z - rad/s" in readings
+        assert "temperature - C" in readings
         
         # Check acceleration values
-        accel = readings["acceleration"]
-        assert "x" in accel
-        assert "y" in accel
-        assert "z" in accel
-        assert accel["x"] == 1.0
-        assert accel["y"] == 2.0
-        assert accel["z"] == 9.8
+        assert readings["acceleration_x - m/s²"] == 1.0
+        assert readings["acceleration_y - m/s²"] == 2.0
+        assert readings["acceleration_z - m/s²"] == 9.8
         
         # Check gyroscope values
-        gyro = readings["gyro"]
-        assert "x" in gyro
-        assert "y" in gyro
-        assert "z" in gyro
-        assert gyro["x"] == 0.1
-        assert gyro["y"] == 0.2
-        assert gyro["z"] == 0.3
+        assert readings["gyro_x - rad/s"] == 0.1
+        assert readings["gyro_y - rad/s"] == 0.2
+        assert readings["gyro_z - rad/s"] == 0.3
         
         # Check temperature
-        assert readings["temperature"] == 25.0
+        assert readings["temperature - C"] == 25.0
     
     @patch('models.mpu.busio')
     @patch('models.mpu.board')
@@ -210,10 +195,12 @@ class TestMpu:
         asyncio.run(mpu.tare())
         
         # Tare offsets should be set
-        assert mpu.accel_tare_offset is not None
-        assert mpu.gyro_tare_offset is not None
-        assert len(mpu.accel_tare_offset) == 3
-        assert len(mpu.gyro_tare_offset) == 3
+        assert mpu.accel_x_offset == 0.1
+        assert mpu.accel_y_offset == 0.2
+        assert mpu.accel_z_offset == 9.8
+        assert mpu.gyro_x_offset == 0.01
+        assert mpu.gyro_y_offset == 0.02
+        assert mpu.gyro_z_offset == 0.03
     
     @patch('models.mpu.busio')
     @patch('models.mpu.board')
@@ -251,14 +238,22 @@ class TestMpu:
         mpu.reconfigure(mock_component_config, mock_dependencies)
         
         # Set some tare offsets first
-        mpu.accel_tare_offset = (0.1, 0.2, 0.0)
-        mpu.gyro_tare_offset = (0.01, 0.02, 0.0)
+        mpu.accel_x_offset = 0.1
+        mpu.accel_y_offset = 0.2
+        mpu.accel_z_offset = 0.0
+        mpu.gyro_x_offset = 0.01
+        mpu.gyro_y_offset = 0.02
+        mpu.gyro_z_offset = 0.0
         
         asyncio.run(mpu.reset_tare())
         
         # Tare offsets should be reset
-        assert mpu.accel_tare_offset == (0.0, 0.0, 0.0)
-        assert mpu.gyro_tare_offset == (0.0, 0.0, 0.0)
+        assert mpu.accel_x_offset == 0.0
+        assert mpu.accel_y_offset == 0.0
+        assert mpu.accel_z_offset == 0.0
+        assert mpu.gyro_x_offset == 0.0
+        assert mpu.gyro_y_offset == 0.0
+        assert mpu.gyro_z_offset == 0.0
     
     @patch('models.mpu.busio')
     @patch('models.mpu.board')
@@ -279,10 +274,18 @@ class TestMpu:
         result = asyncio.run(mpu.do_command(command))
         
         assert "tare" in result
-        assert "accel_offset" in result["tare"]
-        assert "gyro_offset" in result["tare"]
-        assert len(result["tare"]["accel_offset"]) == 3
-        assert len(result["tare"]["gyro_offset"]) == 3
+        assert "accel_x_offset" in result["tare"]
+        assert "accel_y_offset" in result["tare"]
+        assert "accel_z_offset" in result["tare"]
+        assert "gyro_x_offset" in result["tare"]
+        assert "gyro_y_offset" in result["tare"]
+        assert "gyro_z_offset" in result["tare"]
+        assert result["tare"]["accel_x_offset"] == 0.1
+        assert result["tare"]["accel_y_offset"] == 0.2
+        assert result["tare"]["accel_z_offset"] == 9.8
+        assert result["tare"]["gyro_x_offset"] == 0.01
+        assert result["tare"]["gyro_y_offset"] == 0.02
+        assert result["tare"]["gyro_z_offset"] == 0.03
     
     @patch('models.mpu.busio')
     @patch('models.mpu.board')
@@ -293,15 +296,18 @@ class TestMpu:
         mpu.reconfigure(mock_component_config, mock_dependencies)
         
         # Set some tare offsets first
-        mpu.accel_tare_offset = (0.1, 0.2, 0.0)
-        mpu.gyro_tare_offset = (0.01, 0.02, 0.0)
+        mpu.accel_x_offset = 0.1
+        mpu.accel_y_offset = 0.2
+        mpu.accel_z_offset = 0.0
+        mpu.gyro_x_offset = 0.01
+        mpu.gyro_y_offset = 0.02
+        mpu.gyro_z_offset = 0.0
         
         command = {"reset_tare": []}
         result = asyncio.run(mpu.do_command(command))
         
         assert "reset_tare" in result
-        assert result["reset_tare"]["accel_offset"] == (0.0, 0.0, 0.0)
-        assert result["reset_tare"]["gyro_offset"] == (0.0, 0.0, 0.0)
+        assert result["reset_tare"] == True
     
     @patch('models.mpu.busio')
     @patch('models.mpu.board')
@@ -325,11 +331,9 @@ class TestMpu:
     def test_full_workflow(self, mock_mpu6050_class, mock_board, mock_busio, create_config_with_attributes, mock_dependencies):
         """Test complete MPU workflow: configure, tare, read."""
         config = create_config_with_attributes({
-            "i2c_bus": 0,
             "i2c_address": 0x69,
-            "accel_range": 4,
-            "gyro_range": 500,
-            "filter_bandwidth": 10
+            "units": "imperial",
+            "sample_rate": 200
         })
         
         mock_i2c = Mock()
