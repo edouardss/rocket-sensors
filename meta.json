@@ -2,7 +2,7 @@
   "$schema": "https://dl.viam.dev/module.schema.json",
   "module_id": "edss:rocket-sensors",
   "visibility": "public",
-  "url": "https://github.com/edss/rocket-sensors",
+  "url": "https://github.com/edouardss/rocket-sensors",
   "description": "Sensors used for home made rocket control system",
   "models": [
     {
