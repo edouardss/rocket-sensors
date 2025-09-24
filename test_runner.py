@@ -32,6 +32,39 @@ def run_command(cmd, description):
         return True
 
 
+def run_module_tests(module, test_type, coverage, verbose, hardware):
+    """Run tests for a specific module in a separate process to avoid registry conflicts."""
+    # Base pytest command
+    cmd = ["python", "-m", "pytest"]
+    
+    # Add verbosity
+    if verbose:
+        cmd.append("-v")
+    
+    # Add coverage if requested
+    if coverage:
+        cmd.extend(["--cov=src", "--cov-report=html", "--cov-report=xml"])
+    
+    # Select module and test files
+    cmd.append(f"tests/{module}/")
+    
+    # Select test type
+    if test_type == "unit":
+        cmd.extend(["-m", "unit"])
+    elif test_type == "integration":
+        cmd.extend(["-m", "integration"])
+    elif test_type == "all":
+        if not hardware:
+            cmd.extend(["-m", "not hardware"])
+    
+    # Add hardware tests if requested
+    if hardware:
+        cmd.extend(["-m", "hardware"])
+    
+    # Run the tests
+    return run_command(cmd, f"Testing {module} module ({test_type} tests)")
+
+
 def main():
     """Main test runner function."""
     parser = argparse.ArgumentParser(description="Run tests for rocket-sensors project")
@@ -48,38 +81,22 @@ def main():
     
     args = parser.parse_args()
     
-    # Base pytest command
-    cmd = ["python", "-m", "pytest"]
-    
-    # Add verbosity
-    if args.verbose:
-        cmd.append("-v")
-    
-    # Add coverage if requested
-    if args.coverage:
-        cmd.extend(["--cov=src", "--cov-report=html", "--cov-report=xml"])
-    
-    # Select module and test files - use unified test file for all modules
-    if args.module == "all":
-        cmd.append("tests/test_all_models.py")
+    # For individual modules, run in separate processes to avoid registry conflicts
+    if args.module != "all":
+        success = run_module_tests(args.module, args.type, args.coverage, args.verbose, args.hardware)
     else:
-        cmd.append(f"tests/{args.module}/")
-    
-    # Select test type
-    if args.type == "unit":
-        cmd.extend(["-m", "unit"])
-    elif args.type == "integration":
-        cmd.extend(["-m", "integration"])
-    elif args.type == "all":
-        if not args.hardware:
-            cmd.extend(["-m", "not hardware"])
-    
-    # Add hardware tests if requested
-    if args.hardware:
-        cmd.extend(["-m", "hardware"])
-    
-    # Run the tests
-    success = run_command(cmd, f"Testing {args.module} module ({args.type} tests)")
+        # For "all", run all modules sequentially in separate processes
+        modules = ["loadcell", "mpu", "bmp"]
+        success = True
+        
+        for module in modules:
+            print(f"\n🔄 Running {module} tests...")
+            module_success = run_module_tests(module, args.type, args.coverage, args.verbose, args.hardware)
+            if not module_success:
+                success = False
+                print(f"❌ {module} module tests failed")
+            else:
+                print(f"✅ {module} module tests passed")
     
     if success:
         print(f"\n🎉 All tests passed!")
