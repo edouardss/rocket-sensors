@@ -32,6 +32,25 @@ def run_command(cmd, description):
         return True
 
 
+def run_linting():
+    """Run linting checks on the codebase."""
+    linting_tools = [
+        ("flake8", ["flake8", "src/", "tests/", "--count", "--select=E9,F63,F7,F82", "--show-source", "--statistics", "--ignore=F821"]),
+        ("black", ["black", "--check", "src/", "tests/"]),
+        ("isort", ["isort", "--check-only", "src/", "tests/"]),
+        ("mypy", ["mypy", "src/", "--ignore-missing-imports", "--explicit-package-bases"]),
+    ]
+    
+    all_passed = True
+    
+    for tool_name, cmd in linting_tools:
+        success = run_command(cmd, f"Running {tool_name}")
+        if not success:
+            all_passed = False
+    
+    return all_passed
+
+
 def run_module_tests(module, test_type, coverage, verbose, hardware):
     """Run tests for a specific module using the proper Viam testing approach."""
     # Base pytest command
@@ -78,8 +97,20 @@ def main():
                        help="Verbose output")
     parser.add_argument("--hardware", action="store_true", 
                        help="Include hardware-dependent tests")
+    parser.add_argument("--lint", action="store_true", 
+                       help="Run linting checks")
     
     args = parser.parse_args()
+    
+    # Handle linting option
+    if args.lint:
+        success = run_linting()
+        if success:
+            print(f"\n🎉 All linting checks passed!")
+        else:
+            print(f"\n💥 Some linting checks failed!")
+            sys.exit(1)
+        return
     
     # Base pytest command
     cmd = ["python", "-m", "pytest"]
