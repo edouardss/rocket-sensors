@@ -45,8 +45,6 @@ def main():
                        help="Verbose output")
     parser.add_argument("--hardware", action="store_true", 
                        help="Include hardware-dependent tests")
-    parser.add_argument("--simple", action="store_true", 
-                       help="Use simplified test files (if available)")
     
     args = parser.parse_args()
     
@@ -61,32 +59,11 @@ def main():
     if args.coverage:
         cmd.extend(["--cov=src", "--cov-report=html", "--cov-report=xml"])
     
-    # Select module and test files
-    if args.simple:
-        # Use simplified test files if available
-        if args.module == "all":
-            # Try to run simplified tests for all modules
-            test_files = []
-            for module in ["loadcell", "mpu", "bmp"]:
-                simple_file = f"tests/{module}/test_{module}_simple.py"
-                if Path(simple_file).exists():
-                    test_files.append(simple_file)
-            if test_files:
-                cmd.extend(test_files)
-            else:
-                cmd.append("tests/")
-        else:
-            simple_file = f"tests/{args.module}/test_{args.module}_simple.py"
-            if Path(simple_file).exists():
-                cmd.append(simple_file)
-            else:
-                cmd.append(f"tests/{args.module}/")
+    # Select module and test files - use unified test file for all modules
+    if args.module == "all":
+        cmd.append("tests/test_all_models.py")
     else:
-        # Use comprehensive test files
-        if args.module == "all":
-            cmd.append("tests/")
-        else:
-            cmd.append(f"tests/{args.module}/")
+        cmd.append(f"tests/{args.module}/")
     
     # Select test type
     if args.type == "unit":
@@ -102,8 +79,7 @@ def main():
         cmd.extend(["-m", "hardware"])
     
     # Run the tests
-    test_type_desc = "simplified" if args.simple else "comprehensive"
-    success = run_command(cmd, f"Testing {args.module} module ({args.type} tests, {test_type_desc})")
+    success = run_command(cmd, f"Testing {args.module} module ({args.type} tests)")
     
     if success:
         print(f"\n🎉 All tests passed!")

@@ -1,8 +1,9 @@
-"""Simplified LoadCell tests - keeping modular structure but simpler implementation."""
+"""Comprehensive LoadCell tests with proper mocking and async handling."""
 
 import pytest
-from unittest.mock import patch, Mock
 import asyncio
+from unittest.mock import Mock, patch, MagicMock
+from typing import Mapping, Any
 
 # Import the LoadCell class
 import sys
@@ -14,7 +15,7 @@ from models.loadcell import LoadCell
 
 @pytest.mark.unit
 class TestLoadCell:
-    """Simplified LoadCell tests in one class."""
+    """Comprehensive LoadCell tests with proper mocking."""
     
     def test_validation_valid_config(self, create_config_with_attributes):
         """Test validation with valid configuration."""
@@ -39,6 +40,12 @@ class TestLoadCell:
         """Test validation with invalid pin numbers."""
         config = create_config_with_attributes({"doutPin": 50})  # Invalid pin
         with pytest.raises(Exception, match="Data Out pin must be a valid GPIO pin number"):
+            LoadCell.validate_config(config)
+    
+    def test_validation_invalid_tare_offset(self, create_config_with_attributes):
+        """Test validation with invalid tare offset."""
+        config = create_config_with_attributes({"tare_offset": 100.0})  # Positive offset
+        with pytest.raises(Exception, match="Tare offset must be a non-positive floating point value"):
             LoadCell.validate_config(config)
     
     @patch('models.loadcell.GPIO')
@@ -80,6 +87,7 @@ class TestLoadCell:
     def test_hx711_creation(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test HX711 sensor creation."""
         mock_hx711_instance = Mock()
+        mock_hx711_instance.reset = Mock()
         mock_hx711_class.return_value = mock_hx711_instance
         
         loadcell = LoadCell("test-loadcell")
@@ -93,6 +101,21 @@ class TestLoadCell:
             channel="A",
             gain=64
         )
+        mock_hx711_instance.reset.assert_called_once()
+    
+    @patch('models.loadcell.GPIO')
+    @patch('models.loadcell.HX711')
+    def test_hx711_initialization_error(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
+        """Test HX711 initialization error handling."""
+        mock_hx711_class.side_effect = Exception("Hardware not available")
+        
+        loadcell = LoadCell("test-loadcell")
+        loadcell.reconfigure(mock_component_config, mock_dependencies)
+        
+        with pytest.raises(Exception, match="Hardware not available"):
+            loadcell.get_hx711()
+        
+        assert loadcell.hx711 is None
     
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
@@ -140,6 +163,23 @@ class TestLoadCell:
     
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')
+    def test_readings_error_handling(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
+        """Test readings error handling."""
+        mock_hx711_instance = Mock()
+        mock_hx711_instance.get_raw_data.side_effect = Exception("Sensor error")
+        mock_hx711_class.return_value = mock_hx711_instance
+        
+        loadcell = LoadCell("test-loadcell")
+        loadcell.reconfigure(mock_component_config, mock_dependencies)
+        
+        with pytest.raises(Exception, match="Sensor error"):
+            asyncio.run(loadcell.get_readings())
+        
+        # HX711 should be cleaned up after error
+        assert loadcell.hx711 is None
+    
+    @patch('models.loadcell.GPIO')
+    @patch('models.loadcell.HX711')
     def test_tare_success(self, mock_hx711_class, mock_gpio, mock_component_config, mock_dependencies):
         """Test successful tare operation."""
         mock_hx711_instance = Mock()
@@ -168,6 +208,9 @@ class TestLoadCell:
         
         with pytest.raises(Exception, match="Tare error"):
             asyncio.run(loadcell.tare())
+        
+        # HX711 should be cleaned up after error
+        assert loadcell.hx711 is None
     
     @patch('models.loadcell.GPIO')
     @patch('models.loadcell.HX711')

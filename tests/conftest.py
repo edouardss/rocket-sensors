@@ -8,6 +8,37 @@ from viam.proto.common import ResourceName
 from viam.resource.base import ResourceBase
 from viam.utils import struct_to_dict
 
+# Clear Viam registry at the start of the test session
+def pytest_configure(config):
+    """Clear Viam registry at the start of the test session to avoid duplicate registration errors."""
+    try:
+        from viam.resource.registry import Registry
+        # Clear the registry at session start
+        Registry._resources.clear()
+        Registry._apis.clear()
+    except Exception:
+        pass
+
+# Clear Viam registry before each test to avoid duplicate registration errors
+@pytest.fixture(autouse=True)
+def clear_viam_registry():
+    """Clear Viam registry before each test to avoid duplicate registration errors."""
+    try:
+        from viam.resource.registry import Registry
+        # Clear the registry
+        Registry._resources.clear()
+        Registry._apis.clear()
+    except Exception:
+        pass
+    yield
+    # Clean up after test
+    try:
+        from viam.resource.registry import Registry
+        Registry._resources.clear()
+        Registry._apis.clear()
+    except Exception:
+        pass
+
 
 @pytest.fixture
 def mock_component_config():
@@ -175,17 +206,31 @@ def create_config_with_attributes():
             if isinstance(value, str):
                 field.HasField = Mock(return_value=True)
                 field.string_value = value
+                field.list_value = Mock()
+                field.list_value.values = []
             elif isinstance(value, (int, float)):
                 field.HasField = Mock(return_value=True)
                 field.number_value = value
+                field.list_value = Mock()
+                field.list_value.values = []
             elif isinstance(value, bool):
                 field.HasField = Mock(return_value=True)
                 field.bool_value = value
+                field.list_value = Mock()
+                field.list_value.values = []
             else:
                 field.HasField = Mock(return_value=False)
+                field.list_value = Mock()
+                field.list_value.values = []
             fields[key] = field
         
         config.attributes.fields = fields
+        
+        # Mock struct_to_dict to return the original attributes
+        def mock_struct_to_dict(attrs):
+            return attributes
+        config.attributes.struct_to_dict = mock_struct_to_dict
+        
         return config
     return _create_config
 

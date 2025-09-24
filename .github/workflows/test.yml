@@ -45,9 +45,6 @@ jobs:
   test-modules:
     runs-on: ubuntu-latest
     needs: test
-    strategy:
-      matrix:
-        module: [loadcell, mpu, bmp]
     
     steps:
     - uses: actions/checkout@v4
@@ -62,13 +59,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     
-    - name: Run ${{ matrix.module }} comprehensive tests
+    - name: Run all module tests together
       run: |
-        python test_runner.py --module ${{ matrix.module }} --coverage --verbose
+        python test_runner.py --module all --coverage --verbose
     
-    - name: Run ${{ matrix.module }} simplified tests
-      run: |
-        python test_runner.py --module ${{ matrix.module }} --simple --coverage --verbose
+    - name: Upload module coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: modules
+        name: codecov-modules
+        fail_ci_if_error: false
 
   lint:
     runs-on: ubuntu-latest
@@ -103,34 +104,10 @@ jobs:
       run: |
         mypy src/ --ignore-missing-imports
 
-  test-simplified:
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Run all simplified tests
-      run: |
-        python test_runner.py --simple --coverage --verbose
-    
-    - name: Run simplified unit tests only
-      run: |
-        python test_runner.py --simple --type unit --verbose
 
   test-hardware:
     runs-on: ubuntu-latest
-    needs: test
+    needs: test-modules
     if: github.event_name == 'pull_request'
     
     steps:

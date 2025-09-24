@@ -1,6 +1,6 @@
 # Testing Framework for Rocket Sensors
 
-This directory contains a unified, modular testing framework for the rocket-sensors project. The framework provides both comprehensive and simplified testing approaches, designed to be easily extensible for testing all sensor modules (LoadCell, MPU, BMP) and future modules.
+This directory contains a comprehensive, modular testing framework for the rocket-sensors project. The framework provides thorough testing with proper mocking, designed to be easily extensible for testing all sensor modules (LoadCell, MPU, BMP) and future modules.
 
 ## Framework Structure
 
@@ -11,17 +11,25 @@ tests/
 ├── README.md                   # This file
 ├── loadcell/                   # LoadCell module tests
 │   ├── __init__.py
-│   ├── test_loadcell.py         # Comprehensive tests
-│   └── test_loadcell_simple.py  # Simplified tests
+│   └── test_loadcell.py         # Comprehensive tests with mocking
 ├── mpu/                        # MPU module tests
 │   ├── __init__.py
-│   ├── test_mpu.py              # Comprehensive tests
-│   └── test_mpu_simple.py       # Simplified tests (to be created)
+│   └── test_mpu.py              # Comprehensive tests with mocking
 └── bmp/                        # BMP module tests
     ├── __init__.py
-    ├── test_bmp.py              # Comprehensive tests
-    └── test_bmp_simple.py       # Simplified tests (to be created)
+    └── test_bmp.py              # Comprehensive tests with mocking
 ```
+
+## Testing Approach
+
+This framework uses a **single, comprehensive testing approach** that includes:
+
+- **Proper mocking** of hardware dependencies and Viam SDK
+- **Async handling** for all async methods
+- **Multiple test classes** per module for organized testing
+- **Complete coverage** of all functionality
+- **Error handling** with proper exception testing
+- **Integration tests** for full workflows
 
 ## Test Categories
 
@@ -44,27 +52,27 @@ tests/
 
 ## Running Tests
 
-### Using the Unified Test Runner
+### Using the Test Runner
 
 ```bash
 # Activate virtual environment
 source venv/bin/activate
 
-# Run comprehensive tests (default)
-python test_runner.py --module loadcell
-python test_runner.py --module loadcell --type unit
-python test_runner.py --module loadcell --coverage
-
-# Run simplified tests
-python test_runner.py --module loadcell --simple
-python test_runner.py --module loadcell --simple --type unit
-python test_runner.py --module loadcell --simple --coverage
-
 # Run all tests
-python test_runner.py                    # All comprehensive tests
-python test_runner.py --simple          # All simplified tests
-python test_runner.py --type unit       # All unit tests
-python test_runner.py --hardware        # Include hardware tests
+python test_runner.py
+
+# Run specific module tests
+python test_runner.py --module loadcell
+python test_runner.py --module mpu
+python test_runner.py --module bmp
+
+# Run specific test types
+python test_runner.py --type unit
+python test_runner.py --type integration
+python test_runner.py --hardware
+
+# Run with coverage
+python test_runner.py --coverage
 ```
 
 ### Using pytest directly
@@ -78,10 +86,6 @@ pytest tests/loadcell/
 pytest tests/mpu/
 pytest tests/bmp/
 
-# Run specific test files
-pytest tests/loadcell/test_loadcell.py              # Comprehensive tests
-pytest tests/loadcell/test_loadcell_simple.py       # Simplified tests
-
 # Run with coverage
 pytest --cov=src --cov-report=html
 
@@ -91,36 +95,8 @@ pytest -m integration
 pytest -m "not hardware"
 
 # Run specific test function
-pytest tests/loadcell/test_loadcell.py::TestLoadCellValidation::test_validate_config_valid_defaults
+pytest tests/loadcell/test_loadcell.py::TestLoadCell::test_validation_valid_config
 ```
-
-## Testing Approaches
-
-### Comprehensive Tests (`test_*.py`)
-- **Multiple test classes** per module (Validation, Initialization, Readings, etc.)
-- **Detailed mocking** with extensive fixtures
-- **Complete coverage** of all functionality
-- **Best for**: CI/CD, thorough testing, debugging complex issues
-
-### Simplified Tests (`test_*_simple.py`)
-- **Single test class** per module
-- **Essential fixtures** only
-- **Focused testing** on core functionality
-- **Best for**: Development, quick testing, learning the codebase
-
-### When to Use Which
-
-**Use Comprehensive Tests when:**
-- Running CI/CD pipelines
-- Need thorough validation
-- Debugging complex issues
-- Preparing for production
-
-**Use Simplified Tests when:**
-- Developing new features
-- Quick validation during development
-- Learning how the code works
-- Fast feedback loops
 
 ## Test Coverage
 
@@ -138,7 +114,7 @@ The framework includes comprehensive test coverage for:
 ### MPU Module
 - Configuration validation
 - Initialization and reconfiguration
-- Sensor readings in metric/imperial units
+- Sensor readings (acceleration, gyroscope, temperature)
 - Tare functionality and offset management
 - Command handling
 - Error handling
@@ -146,11 +122,10 @@ The framework includes comprehensive test coverage for:
 ### BMP Module
 - Configuration validation
 - Initialization and reconfiguration
-- Sensor readings in metric/imperial units
+- Sensor readings (temperature, pressure, altitude)
 - Tare functionality and offset management
 - Command handling
 - Error handling
-- Edge cases and boundary conditions
 
 ## Mocking Strategy
 
@@ -164,7 +139,7 @@ The framework uses comprehensive mocking to test without hardware:
 - **I2C**: Mock I2C bus for sensor communication
 
 ### Viam SDK Mocks
-- **ComponentConfig**: Mock configuration objects
+- **ComponentConfig**: Mock configuration objects with proper protobuf structure
 - **Dependencies**: Mock resource dependencies
 - **Loggers**: Mock logging functionality
 
@@ -175,12 +150,12 @@ The framework uses comprehensive mocking to test without hardware:
 - `mock_dependencies`: Mock dependencies for testing
 - `mock_logger`: Mock logger for testing
 - `mock_gpio`: Mock GPIO module
-- `mock_hx711`: Mock HX711 sensor
-- `mock_mpu_sensor`: Mock MPU6050 sensor
-- `mock_bmp_sensor`: Mock BMP085 sensor
-- `mock_i2c`: Mock I2C bus
+- `mock_hx711_class`: Mock HX711 sensor class
+- `mock_mpu6050_class`: Mock MPU6050 sensor class
+- `mock_adafruit_bmp_class`: Mock BMP085 sensor class
+- `mock_busio`: Mock I2C bus
 - `mock_board`: Mock board module
-- `create_config_with_attributes`: Factory for creating configs
+- `create_config_with_attributes`: Factory for creating configs with attributes
 
 ### Module-Specific Fixtures
 - `loadcell_config_data`: Sample LoadCell configuration
@@ -197,61 +172,35 @@ mkdir tests/new_module/
 touch tests/new_module/__init__.py
 ```
 
-### 2. Create Comprehensive Tests
+### 2. Create Test File
 Create `tests/new_module/test_new_module.py` with test classes:
 ```python
 @pytest.mark.unit
-class TestNewModuleValidation:
-    """Test configuration validation"""
-
-@pytest.mark.unit  
-class TestNewModuleInitialization:
-    """Test initialization and configuration"""
-
-@pytest.mark.unit
-class TestNewModuleReadings:
-    """Test sensor readings"""
-
-@pytest.mark.unit
-class TestNewModuleTare:
-    """Test tare functionality (if applicable)"""
-
-@pytest.mark.unit
-class TestNewModuleCommands:
-    """Test command handling"""
-
-@pytest.mark.integration
-class TestNewModuleIntegration:
-    """Test complete workflows"""
-```
-
-### 3. Create Simplified Tests
-Create `tests/new_module/test_new_module_simple.py`:
-```python
-@pytest.mark.unit
 class TestNewModule:
-    """All NewModule tests in one class"""
+    """Comprehensive NewModule tests with proper mocking."""
     
-    def test_validation_valid_config(self):
+    def test_validation_valid_config(self, create_config_with_attributes):
         """Test validation with valid configuration"""
         
-    def test_initialization_defaults(self):
+    def test_initialization_defaults(self, mock_component_config, mock_dependencies):
         """Test initialization with default values"""
         
-    def test_readings_success(self):
+    def test_readings_success(self, mock_component_config, mock_dependencies):
         """Test successful sensor readings"""
         
-    def test_tare_success(self):
+    def test_tare_success(self, mock_component_config, mock_dependencies):
         """Test successful tare operation"""
         
-    # ... other test methods
+    @pytest.mark.integration
+    def test_full_workflow(self, create_config_with_attributes, mock_dependencies):
+        """Test complete workflow: configure, tare, read"""
 ```
 
-### 4. Add Module-Specific Fixtures
+### 3. Add Module-Specific Fixtures
 Add any module-specific fixtures to `conftest.py`
 
-### 5. Update Test Runner
-The unified test runner automatically discovers new modules - no updates needed!
+### 4. Update Test Runner
+The test runner automatically discovers new modules - no updates needed!
 
 ## Continuous Integration
 
@@ -271,6 +220,8 @@ The framework includes GitHub Actions workflows for:
 6. **Use Fixtures**: Reuse common setup code
 7. **Mark Tests Appropriately**: Use markers for test categorization
 8. **Document Complex Tests**: Add docstrings for complex test logic
+9. **Async Handling**: Always await async methods in tests
+10. **Proper Mocking**: Use appropriate mocks for Viam SDK components
 
 ## Troubleshooting
 
@@ -278,8 +229,9 @@ The framework includes GitHub Actions workflows for:
 
 1. **Import Errors**: Ensure `src/` is in Python path
 2. **Mock Issues**: Check that mocks are properly configured
-3. **Hardware Tests**: Use `--hardware` flag for hardware-dependent tests
-4. **Coverage**: Run with `--coverage` to see coverage reports
+3. **Async Issues**: Always await async methods in tests
+4. **Hardware Tests**: Use `--hardware` flag for hardware-dependent tests
+5. **Coverage**: Run with `--coverage` to see coverage reports
 
 ### Debug Mode
 
@@ -288,7 +240,7 @@ The framework includes GitHub Actions workflows for:
 pytest -v -s --tb=long
 
 # Run single test with debug
-pytest tests/loadcell/test_loadcell.py::TestLoadCellValidation::test_validate_config_valid_defaults -v -s
+pytest tests/loadcell/test_loadcell.py::TestLoadCell::test_validation_valid_config -v -s
 ```
 
 ## Contributing
@@ -299,3 +251,5 @@ When adding new tests:
 3. Include both positive and negative test cases
 4. Update this README if adding new features
 5. Ensure tests pass in CI environment
+6. Use proper async handling for async methods
+7. Mock all external dependencies appropriately
