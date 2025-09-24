@@ -33,7 +33,7 @@ def run_command(cmd, description):
 
 
 def run_module_tests(module, test_type, coverage, verbose, hardware):
-    """Run tests for a specific module in a separate process to avoid registry conflicts."""
+    """Run tests for a specific module using the proper Viam testing approach."""
     # Base pytest command
     cmd = ["python", "-m", "pytest"]
     
@@ -81,22 +81,38 @@ def main():
     
     args = parser.parse_args()
     
-    # For individual modules, run in separate processes to avoid registry conflicts
-    if args.module != "all":
-        success = run_module_tests(args.module, args.type, args.coverage, args.verbose, args.hardware)
+    # Base pytest command
+    cmd = ["python", "-m", "pytest"]
+    
+    # Add verbosity
+    if args.verbose:
+        cmd.append("-v")
+    
+    # Add coverage if requested
+    if args.coverage:
+        cmd.extend(["--cov=src", "--cov-report=html", "--cov-report=xml"])
+    
+    # Select module and test files - use proper Viam approach
+    if args.module == "all":
+        cmd.append("tests/")  # Run all tests in single process with session-scoped registration
     else:
-        # For "all", run all modules sequentially in separate processes
-        modules = ["loadcell", "mpu", "bmp"]
-        success = True
-        
-        for module in modules:
-            print(f"\n🔄 Running {module} tests...")
-            module_success = run_module_tests(module, args.type, args.coverage, args.verbose, args.hardware)
-            if not module_success:
-                success = False
-                print(f"❌ {module} module tests failed")
-            else:
-                print(f"✅ {module} module tests passed")
+        cmd.append(f"tests/{args.module}/")
+    
+    # Select test type
+    if args.type == "unit":
+        cmd.extend(["-m", "unit"])
+    elif args.type == "integration":
+        cmd.extend(["-m", "integration"])
+    elif args.type == "all":
+        if not args.hardware:
+            cmd.extend(["-m", "not hardware"])
+    
+    # Add hardware tests if requested
+    if args.hardware:
+        cmd.extend(["-m", "hardware"])
+    
+    # Run the tests
+    success = run_command(cmd, f"Testing {args.module} module ({args.type} tests)")
     
     if success:
         print(f"\n🎉 All tests passed!")

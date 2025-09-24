@@ -8,37 +8,69 @@ from viam.proto.common import ResourceName
 from viam.resource.base import ResourceBase
 from viam.utils import struct_to_dict
 
-# Clear Viam registry at the start of the test session
-def pytest_configure(config):
-    """Clear Viam registry at the start of the test session to avoid duplicate registration errors."""
+# Session-scoped fixture to register all models once per test session
+@pytest.fixture(scope="session", autouse=True)
+def register_all_models():
+    """Register all models once at the start of the test session."""
     try:
         from viam.resource.registry import Registry
-        # Clear the registry at session start
-        Registry._resources.clear()
-        Registry._apis.clear()
-    except Exception:
-        pass
-
-# Clear Viam registry before each test to avoid duplicate registration errors
-@pytest.fixture(autouse=True)
-def clear_viam_registry():
-    """Clear Viam registry before each test to avoid duplicate registration errors."""
-    try:
-        from viam.resource.registry import Registry
-        # Clear the registry
-        Registry._resources.clear()
-        Registry._apis.clear()
-    except Exception:
-        pass
+        # Clear any existing registrations
+        Registry._RESOURCES.clear()
+        Registry._APIS.clear()
+        
+        # Import and register all models once
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+        
+        # Mock board module before importing models
+        from unittest.mock import Mock
+        sys.modules['board'] = Mock()
+        
+        # Import all models to register them once
+        from models.loadcell import LoadCell
+        from models.mpu import Mpu
+        from models.bmp import BmpSensor
+        
+        # Make models available globally for test files
+        import builtins
+        builtins.LoadCell = LoadCell
+        builtins.Mpu = Mpu
+        builtins.BmpSensor = BmpSensor
+        
+        print(f"✅ Registered all models: {len(Registry._APIS)} APIs, {len(Registry._RESOURCES)} resources")
+        
+    except Exception as e:
+        print(f"⚠️  Could not register models: {e}")
+    
     yield
-    # Clean up after test
+    
+    # Clean up after session
     try:
         from viam.resource.registry import Registry
-        Registry._resources.clear()
-        Registry._apis.clear()
+        Registry._RESOURCES.clear()
+        Registry._APIS.clear()
     except Exception:
         pass
 
+
+@pytest.fixture
+def loadcell_class():
+    """Provide LoadCell class for testing."""
+    from models.loadcell import LoadCell
+    return LoadCell
+
+@pytest.fixture
+def mpu_class():
+    """Provide Mpu class for testing."""
+    from models.mpu import Mpu
+    return Mpu
+
+@pytest.fixture
+def bmp_class():
+    """Provide BmpSensor class for testing."""
+    from models.bmp import BmpSensor
+    return BmpSensor
 
 @pytest.fixture
 def mock_component_config():

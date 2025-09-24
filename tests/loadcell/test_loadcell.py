@@ -5,12 +5,8 @@ import asyncio
 from unittest.mock import Mock, patch, MagicMock
 from typing import Mapping, Any
 
-# Import the LoadCell class
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
-
-from models.loadcell import LoadCell
+# LoadCell is imported by the session-scoped fixture in conftest.py
+# No need to import here to avoid duplicate registration
 
 
 @pytest.mark.unit

@@ -5,29 +5,8 @@ import asyncio
 from unittest.mock import Mock, patch, MagicMock
 from typing import Mapping, Any
 
-# Mock board module before importing models
-with patch.dict('sys.modules', {'board': Mock()}):
-    # Import the BmpSensor class
-    import sys
-    import os
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
-    
-    # Handle potential duplicate registration error
-    try:
-        from models.bmp import BmpSensor
-    except Exception as e:
-        if "DuplicateResourceError" in str(e):
-            # If it's a duplicate registration error, try to clear registry and retry
-            try:
-                from viam.resource.registry import Registry
-                Registry._resources.clear()
-                Registry._apis.clear()
-                from models.bmp import BmpSensor
-            except Exception:
-                # If that fails, just skip the import and let the test fail gracefully
-                BmpSensor = None
-        else:
-            raise
+# BmpSensor is imported by the session-scoped fixture in conftest.py
+# No need to import here to avoid duplicate registration
 
 
 @pytest.mark.unit
