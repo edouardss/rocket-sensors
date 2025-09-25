@@ -133,6 +133,7 @@ class Mpu(Sensor, EasyResource):
 
         except Exception as e:
             self.logger.error(f"Failed to initialize IMU sensor: {e}")
+            self.logger.error(f"Error: {e}")
             self.sensor = None
             raise
  
