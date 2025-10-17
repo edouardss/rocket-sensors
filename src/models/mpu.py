@@ -276,7 +276,9 @@ class Mpu(Sensor, EasyResource):
                 }
             elif name == "reset_tare":
                 await self.reset_tare(*args)
-                result[name] = True
+                result[name] = {
+                    "this is a test": "did my code come through?"
+                }
             else:
                 result[name] = {
                     "error": f"Unknown command: {name}",
