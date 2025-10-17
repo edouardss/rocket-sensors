@@ -272,14 +272,11 @@ class Mpu(Sensor, EasyResource):
                     "accel_z_offset": float(self.accel_z_offset),
                     "gyro_x_offset": float(self.gyro_x_offset),
                     "gyro_y_offset": float(self.gyro_y_offset),
-                    "gyro_z_offset": float(self.gyro_z_offset),
-                    "tare": "tare successful"
+                    "gyro_z_offset": float(self.gyro_z_offset)
                 }
             elif name == "reset_tare":
                 await self.reset_tare(*args)
-                result[name] = {
-                    "reset_tare": "reset successful"
-                }
+                result[name] = "reset successful"
             else:
                 result[name] = {
                     "error": f"Unknown command: {name}",

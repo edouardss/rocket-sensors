@@ -310,7 +310,7 @@ class TestMpu:
         result = asyncio.run(mpu.do_command(command))
         
         assert "reset_tare" in result
-        assert result["reset_tare"] == True
+        assert result["reset_tare"] == "reset successful"
     
     @patch('models.mpu.busio')
     @patch('models.mpu.board')
